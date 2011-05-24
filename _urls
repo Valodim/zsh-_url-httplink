@@ -152,7 +152,7 @@ if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
   setopt localoptions histsubstpattern
 
   # get path up until last /
-  if compset -P '(#b)([a-zA-Z0-9\!%)(/]#/)'; then
+  if compset -P '(#b)([-a-zA-Z0-9\!%)(/]#/)'; then
     httppath=${(Q)match[1]}
   else
     httppath='/'
