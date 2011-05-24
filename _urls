@@ -172,7 +172,7 @@ if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
   for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
 
   # Yes. Yes, we can.
-  _tags httpdir httpfile
+  _tags -C httplink httpdir httpfile
   while _tags; do
     while _next_label httpdir expl 'HTTP Listing Directory'; do
       # treat directories
