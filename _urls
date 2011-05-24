@@ -146,51 +146,54 @@ else
   port=80
 fi
 
-# Can we do http completion?
-if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
-  # this is required for the urldecode below
-  setopt localoptions histsubstpattern
+# check if this is http, and not a local thing. also check for a GNU ping
+if [[ "$localhttp_servername" != "$host" && "$scheme" == "http" ]] && (ping --version | grep GNU 2>/dev/null >/dev/null); then
+  # Can we do http completion?
+  if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
+    # this is required for the urldecode below
+    setopt localoptions histsubstpattern
 
-  # get path up until last /
-  if compset -P '(#b)([-a-zA-Z0-9\!%)(/]#/)'; then
-    httppath=${(Q)match[1]}
+    # get path up until last /
+    if compset -P '(#b)([-a-zA-Z0-9\!%)(/]#/)'; then
+      httppath=${(Q)match[1]}
+    else
+      httppath='/'
+    fi
+
+    # fetch an url listing (only intended for http file listings!)
+    urls=( ${(f)"$(wget --timeout=3 -O - -q "http://$host:$port/$httppath" | grep -o -E 'href="[^"]+"' | cut -d'"' -f2)"} )
+    dirurls=( ${${(M)urls:#*/}:#(../|/)} )
+    fileurls=( ${${urls:#*/}:#\?*} )
+
+    dirout=()
+    # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+    for url in "${(@)dirurls}"; do dirout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
+
+    fileout=()
+    # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+    for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
+
+    # Yes. Yes, we can.
+    _tags -C httplink httpdir httpfile
+    while _tags; do
+      while _next_label httpdir expl 'HTTP Listing Directory'; do
+        # treat directories
+        if [[ $#dirurls > 0 ]]; then
+          compadd -J 'directories' -S '' "$expl[@]" -d dirout -a dirurls && ret=0
+        fi
+      done
+
+      while _next_label httpfile expl 'HTTP Listing File'; do
+        # treat files
+        if [[ $#fileurls > 0 ]]; then
+          compadd -J 'files' -S ' ' "$expl[@]" -d fileout -a fileurls && ret=0
+        fi
+      done
+      (( ret )) || return 0
+    done
   else
-    httppath='/'
+    _message -e httplink 'could not complete from host - ping timeout' && return 0
   fi
-
-  # fetch an url listing (only intended for http file listings!)
-  urls=( ${(f)"$(wget -O - -q "http://$host:$port/$httppath" | grep -o -E 'href="[^"]+"' | cut -d'"' -f2)"} )
-  dirurls=( ${${(M)urls:#*/}:#(../|/)} )
-  fileurls=( ${${urls:#*/}:#\?*} )
-
-  dirout=()
-  # need the for loop until zsh 4.3.12 / urldecode by Mikachu
-  for url in "${(@)dirurls}"; do dirout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
-
-  fileout=()
-  # need the for loop until zsh 4.3.12 / urldecode by Mikachu
-  for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
-
-  # Yes. Yes, we can.
-  _tags -C httplink httpdir httpfile
-  while _tags; do
-    while _next_label httpdir expl 'HTTP Listing Directory'; do
-      # treat directories
-      if [[ $#dirurls > 0 ]]; then
-        compadd -J 'directories' -S '' "$expl[@]" -d dirout -a dirurls && ret=0
-      fi
-    done
-
-    while _next_label httpfile expl 'HTTP Listing File'; do
-      # treat files
-      if [[ $#fileurls > 0 ]]; then
-        compadd -J 'files' -S ' ' "$expl[@]" -d fileout -a fileurls && ret=0
-      fi
-    done
-    (( ret )) || return 0
-  done
-else
-  _message -e httpfile 'could not complete from host' && return 0
 fi
 
 # Complete part after hostname
