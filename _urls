@@ -160,28 +160,30 @@ if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
 
   # fetch an url listing (only intended for http file listings!)
   urls=( ${(f)"$(wget -O - -q "http://$host:$port/$httppath" | grep -o -E 'href="[^"]+"' | cut -d'"' -f2)"} )
+  dirurls=( ${${(M)urls:#*/}:#(../|/)} )
+  fileurls=( ${${urls:#*/}:#\?*} )
+
+  dirout=()
+  # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+  for url in "${(@)dirurls}"; do dirout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
+
+  fileout=()
+  # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+  for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
 
   # Yes. Yes, we can.
   _tags httpdir httpfile
   while _tags; do
     while _next_label httpdir expl 'HTTP Listing Directory'; do
       # treat directories
-      dirurls=( ${${(M)urls:#*/}:#(../|/)} )
       if [[ $#dirurls > 0 ]]; then
-        dirout=()
-        # need the for loop until zsh 4.3.12 / urldecode by Mikachu
-        for url in "${(@)dirurls}"; do dirout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
         compadd -J 'directories' -S '' "$expl[@]" -d dirout -a dirurls && ret=0
       fi
     done
 
     while _next_label httpfile expl 'HTTP Listing File'; do
       # treat files
-      fileurls=( ${${urls:#*/}:#\?*} )
       if [[ $#fileurls > 0 ]]; then
-        fileout=()
-        # need the for loop until zsh 4.3.12 / urldecode by Mikachu
-        for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
         compadd -J 'files' -S ' ' "$expl[@]" -d fileout -a fileurls && ret=0
       fi
     done
