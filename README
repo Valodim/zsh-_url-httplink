@@ -1,0 +1,12 @@
+this extends zsh's _urls completion, allowing it to complete urls from html
+pages.
+
+the parsing is very simple, taking only href="(XXX)" into account. this
+approach is entirely sufficient for simple file listings, but will have
+problems with more complex pages.
+
+TODO:
+ - handle absolute urls (just ignore?)
+ - do testing for different scenarios
+ - do bookmarks and this local server thingie still work?
+ - fix bugs?
