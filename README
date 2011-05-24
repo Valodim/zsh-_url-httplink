@@ -7,6 +7,9 @@ problems with more complex pages.
 
 Screenshot: http://mugenguild.com/~valodim/zsh_httplisting.png
 
+Installation: Just put the _urls file somewhere in your fpath. You may need to
+rm ~/.zcompdump and restart your zsh to refresh some completion cache.
+
 TODO:
  - handle absolute urls (just ignore?)
  - do testing for different scenarios
