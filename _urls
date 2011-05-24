@@ -150,23 +150,40 @@ fi
 if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
   # this is required for the urldecode below
   setopt localoptions histsubstpattern
+
+  # get path up until last /
+  if compset -P '(#b)([a-zA-Z0-9\!%)(/]#/)'; then
+    httppath=${(Q)match[1]}
+  else
+    httppath='/'
+  fi
+
+  # fetch an url listing (only intended for http file listings!)
+  urls=( ${(f)"$(wget -O - -q "http://$host:$port/$httppath" | grep -o -E 'href="[^"]+"' | cut -d'"' -f2)"} )
+
   # Yes. Yes, we can.
-  _tags httplink
+  _tags httpdir httpfile
   while _tags; do
-    while _next_label httplink expl 'HTTP Listing Link'; do
-      # get path up until last /
-      if compset -P '(#b)([a-zA-Z0-9\!%)(/]#/)'; then
-        httppath=${(Q)match[1]}
-      else
-        httppath='/'
+    while _next_label httpdir expl 'HTTP Listing Directory'; do
+      # treat directories
+      dirurls=( ${${(M)urls:#*/}:#(../|/)} )
+      if [[ $#dirurls > 0 ]]; then
+        dirout=()
+        # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+        for url in "${(@)dirurls}"; do dirout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
+        compadd -J 'directories' -S '' "$expl[@]" -d dirout -a dirurls && ret=0
       fi
-      # fetch an url listing (only intended for http file listings!)
-      urls=( ${(f)"$(wget -O - -q "http://$host:$port/$httppath" | grep -o -E 'href="[^"]+"' | cut -d'"' -f2)"} )
-      # need the for loop until zsh 4.3.12
-      out=()
-      # urldecode by Mikachu
-      for url in "${(@)urls}"; do out+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
-      compadd -S ''  "$expl[@]" -d out -a urls && ret=0
+    done
+
+    while _next_label httpfile expl 'HTTP Listing File'; do
+      # treat files
+      fileurls=( ${${urls:#*/}:#\?*} )
+      if [[ $#fileurls > 0 ]]; then
+        fileout=()
+        # need the for loop until zsh 4.3.12 / urldecode by Mikachu
+        for url in "${(@)fileurls}"; do fileout+=("$(printf %b ${url:gs/(#b)%(??)/\\x$match})"); done
+        compadd -J 'files' -S ' ' "$expl[@]" -d fileout -a fileurls && ret=0
+      fi
     done
     (( ret )) || return 0
   done
