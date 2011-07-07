@@ -147,7 +147,7 @@ else
 fi
 
 # check if this is http, and not a local thing. also check for a GNU ping
-if [[ "$localhttp_servername" != "$host" && "$scheme" == "http" ]] && (ping --version | grep GNU 2>/dev/null >/dev/null); then
+if [[ "$localhttp_servername" != "$host" && "$scheme" == "http" ]]; then
   # Can we do http completion?
   if ping -c 1 -w 1 "$host" > /dev/null 2>/dev/null ; then
     # this is required for the urldecode below
