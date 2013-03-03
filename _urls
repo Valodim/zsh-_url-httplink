@@ -154,7 +154,7 @@ if [[ "$localhttp_servername" != "$host" && "$scheme" == "http" ]]; then
     setopt localoptions histsubstpattern
 
     # get path up until last /
-    if compset -P '(#b)([-a-zA-Z0-9\!%)(/]#/)'; then
+    if compset -P '(#b)([-a-zA-Z0-9\!%)(/._]#/)'; then
       httppath=${(Q)match[1]}
     else
       httppath='/'
